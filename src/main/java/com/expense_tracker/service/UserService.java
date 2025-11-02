@@ -5,6 +5,9 @@ import com.expense_tracker.exception.UserNotFoundException;
 import com.expense_tracker.model.User;
 import com.expense_tracker.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,12 +28,13 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public List<User> getAllUsers() {
-        List<User> users = userRepository.findAll();
-        if (users.isEmpty()) {
+    public Page<User> getAllUsers(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> usersPage = userRepository.findAll(pageable);
+        if (usersPage.isEmpty()) {
             throw new UserNotFoundException("No users found in the system");
         }
-        return users;
+        return usersPage;
     }
 
     public User getUserById(Long id) {
@@ -94,9 +98,9 @@ public class UserService {
         return userRepository.save(existingUser);
     }
 
-    public void deleteAllUsers(){
+    public void deleteAllUsers() {
         List<User> users = userRepository.findAll();
-        if(users.isEmpty()) {
+        if (users.isEmpty()) {
             throw new UserNotFoundException("No users found to delete");
         }
         userRepository.deleteAll();

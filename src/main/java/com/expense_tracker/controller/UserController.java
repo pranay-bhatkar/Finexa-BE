@@ -5,11 +5,12 @@ import com.expense_tracker.response.ApiResponse;
 import com.expense_tracker.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -32,12 +33,24 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<User>>> getAllUsers() {
-        List<User> users = userService.getAllUsers();
-        ApiResponse<List<User>> response = new ApiResponse<>(
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        Page<User> userPage = userService.getAllUsers(page, size);
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("users", userPage.getContent());
+        responseData.put("currentPage", userPage.getNumber());
+        responseData.put("totalItems", userPage.getTotalElements());
+        responseData.put("totalPages", userPage.getTotalPages());
+        responseData.put("pageSize", userPage.getSize());
+
+
+        ApiResponse<Map<String, Object>> response = new ApiResponse<>(
                 "success",
-                "Fetched all users successfully",
-                users,
+                "Fetched paginated users successfully",
+                responseData,
                 HttpStatus.OK.value()
         );
         return ResponseEntity.ok(response);

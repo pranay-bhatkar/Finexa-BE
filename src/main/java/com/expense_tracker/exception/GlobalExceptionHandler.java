@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
 
         ApiResponse<Map<String, String>> response = new ApiResponse<>(
                 "error",
-                "Validation failed. Please check you input",
+                "Validation failed. Please check your input",
                 errors,
                 HttpStatus.BAD_REQUEST.value()
         );
@@ -51,6 +51,21 @@ public class GlobalExceptionHandler {
 
     // handle user already exists
     @ExceptionHandler(UserAlreadyExistException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ResponseEntity<ApiResponse<Void>> handleUserAlreadyExistsException(UserAlreadyExistException ex) {
+        ApiResponse<Void> response = new ApiResponse<>(
+                "error",
+                ex.getMessage(),
+                null,
+                HttpStatus.CONFLICT.value()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+
+    // handle any other exceptions
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ResponseEntity<ApiResponse<String>> handleGeneralException(Exception ex) {
         ApiResponse<String> response = new ApiResponse<>(
                 "error",
@@ -59,14 +74,6 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
-    }
-
-
-    // handle any other exceptions
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseEntity<String> handlerGeneralException(Exception ex) {
-        return new ResponseEntity<>("Error : " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
 }
