@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,17 +21,27 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+
     public User saveUser(User user) {
 
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new UserAlreadyExistException("User already exists with email : " + user.getEmail());
         }
 
+        // encode password before saving
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
-    public Page<User> getAllUsers(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+    public Page<User> getAllUsers(int page, int size, String sortBy, String sortDir) {
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
         Page<User> usersPage = userRepository.findAll(pageable);
         if (usersPage.isEmpty()) {
             throw new UserNotFoundException("No users found in the system");
@@ -50,21 +62,21 @@ public class UserService {
 
     // update all user details
     public User updateUser(Long id, User updateUser) {
-        User existingUser = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found with ID : " + id));
+        User existingUser = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found with ID : " + id));
 
         // check for duplicates email (except current user)
-        if (userRepository.findByEmail(updateUser.getEmail())
-                .filter(user -> !user.getId().equals(id))
-                .isPresent()
-        ) {
+        if (userRepository.findByEmail(updateUser.getEmail()).filter(user -> !user.getId().equals(id)).isPresent()) {
             throw new UserAlreadyExistException("Email already in use : " + updateUser.getEmail());
         }
 
         existingUser.setName(updateUser.getName());
         existingUser.setEmail(updateUser.getEmail());
-        existingUser.setPassword(updateUser.getPassword());
+//        existingUser.setPassword(updateUser.getPassword());
 
+        // if password provided in updateUser, encode it; otherwise keep existing
+        if (updateUser.getPassword() != null && !updateUser.getPassword().isBlank()) {
+            existingUser.setPassword(passwordEncoder.encode(updateUser.getPassword()));
+        }
         return userRepository.save(existingUser);
     }
 
@@ -80,16 +92,13 @@ public class UserService {
                 case "name" -> existingUser.setName((String) value);
 
                 case "email" -> {
-                    if (userRepository.findByEmail((String) value)
-                            .filter(user -> !user.getId().equals(id))
-                            .isPresent()
-                    ) {
+                    if (userRepository.findByEmail((String) value).filter(user -> !user.getId().equals(id)).isPresent()) {
                         throw new UserAlreadyExistException("Email already in use : " + value);
                     }
                     existingUser.setEmail((String) value);
                 }
 
-                case "password" -> existingUser.setPassword((String) value);
+                case "password" -> existingUser.setPassword(passwordEncoder.encode((String) value));
 
                 default -> throw new IllegalArgumentException("Invalid field : " + field);
             }

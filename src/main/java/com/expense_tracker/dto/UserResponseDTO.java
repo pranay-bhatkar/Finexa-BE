@@ -1,14 +1,14 @@
 package com.expense_tracker.dto;
 
-public class UserDTO {
+public class UserResponseDTO {
     private Long id;
     private String name;
     private String email;
 
-    public UserDTO() {
+    public UserResponseDTO() {
     }
 
-    public UserDTO(Long id, String name, String email) {
+    public UserResponseDTO(Long id, String name, String email) {
         this.id = id;
         this.name = name;
         this.email = email;
