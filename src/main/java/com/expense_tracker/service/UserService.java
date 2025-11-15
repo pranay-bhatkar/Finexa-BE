@@ -34,6 +34,7 @@ public class UserService {
 
         // encode password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+
         return userRepository.save(user);
     }
 
@@ -60,7 +61,7 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    // update all user details
+    // update all user details { put }
     public User updateUser(Long id, User updateUser) {
         User existingUser = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("User not found with ID : " + id));
 
@@ -71,6 +72,7 @@ public class UserService {
 
         existingUser.setName(updateUser.getName());
         existingUser.setEmail(updateUser.getEmail());
+        existingUser.setRole(updateUser.getRole());
 //        existingUser.setPassword(updateUser.getPassword());
 
         // if password provided in updateUser, encode it; otherwise keep existing
@@ -81,7 +83,7 @@ public class UserService {
     }
 
 
-    // update partial details
+    // update partial details { patch }
     public User patchUser(Long id, Map<String, Object> updates) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found with ID : " + id));
@@ -97,6 +99,8 @@ public class UserService {
                     }
                     existingUser.setEmail((String) value);
                 }
+
+                case "role" -> existingUser.setRole((String) value);
 
                 case "password" -> existingUser.setPassword(passwordEncoder.encode((String) value));
 

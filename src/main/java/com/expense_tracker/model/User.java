@@ -29,13 +29,25 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+
+    private String role;
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
     public User() {
     }
 
-    public User(String name, String email, String password) {
+    public User(String name, String email, String password, String role) {
         this.name = name;
         this.email = email;
         this.password = password;
+        this.role = role;
     }
 
 
@@ -72,4 +84,6 @@ public class User {
     public void setPassword(String password) {
         this.password = password;
     }
+
+
 }
