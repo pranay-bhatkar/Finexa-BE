@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    // CREATE
+    // create user ->  admin or self-registration of new users
     @PostMapping
     public ResponseEntity<ApiResponse<UserResponseDTO>> createUser(
             @Valid @RequestBody UserRequestDTO userRequest) {
@@ -44,7 +45,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // GET paginated (map entities -> DTOs)
+    // GET paginated (map entities -> DTOs) -> admin view of users
     @GetMapping
     public ResponseEntity<ApiResponse<Map<String, Object>>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
@@ -76,7 +77,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    // GET by id
+    // GET by id -> Viewing a single user (admin or self).
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponseDTO>> getUserById(@PathVariable Long id) {
         User user = userService.getUserById(id);
@@ -90,7 +91,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    // PUT (replace all) - accept UserRequestDTO (password optional behavior handled in service)
+    // PUT is full update – any missing field in request may overwrite existing values depending on your service logic.
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponseDTO>> updateUser(
             @PathVariable Long id,
@@ -102,7 +103,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    // PATCH (partial) - keep same signature (Map), but map response to DTO
+    // Partial updates like profile edits.
     @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponseDTO>> patchUser(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
         User updated = userService.patchUser(id, updates);
@@ -111,6 +112,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    // Admin removes a user.
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
@@ -123,7 +125,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    // delete all users
+    // Admin bulk delete.
     @DeleteMapping
     public ResponseEntity<ApiResponse<Void>> deleteAllUsers(@RequestParam(required = false) Boolean confirm) {
         if (confirm == null || !confirm) {
@@ -146,6 +148,7 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    // Admin managing roles.
     @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/role")
     public ResponseEntity<ApiResponse<UserResponseDTO>> updateUserRole(
@@ -164,4 +167,29 @@ public class UserController {
     }
 
 
+    // principal.getName() gives the user’s email (or username based on your JWT setup).
+    @PatchMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponseDTO>> updateProfile(
+            @RequestBody Map<String, Object> updates,
+            Principal principal
+    ) {
+
+        // get currently logged-in user by email from the JWT
+        User currentUser = userService.getUserByEmail(principal.getName());
+
+        // use existing patchUser service method
+        User updateUser = userService.patchUser(currentUser.getId(), updates);
+
+        // map to dto
+        UserResponseDTO dto = UserMapper.toDTO(updateUser);
+
+        ApiResponse<UserResponseDTO> response = new ApiResponse<>(
+                "success",
+                "Profile updated successfully",
+                dto,
+                HttpStatus.OK.value()
+        );
+
+        return ResponseEntity.ok(response);
+    }
 }

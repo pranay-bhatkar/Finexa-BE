@@ -13,7 +13,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -59,6 +58,11 @@ public class UserService {
     public User getUserById(Long id) {
         return userRepository.findById(id).orElseThrow(()
                 -> new UserNotFoundException("User not found with ID : " + id));
+    }
+
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email " + email));
     }
 
     public void deleteUser(Long id) {
@@ -138,4 +142,6 @@ public class UserService {
         user.setRole(newRole);
         return userRepository.save(user);
     }
+
+
 }
