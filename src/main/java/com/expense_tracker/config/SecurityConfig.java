@@ -2,6 +2,8 @@ package com.expense_tracker.config;
 
 import com.expense_tracker.security.JwtAuthenticationFilter;
 import com.expense_tracker.service.AuthService;
+import com.expense_tracker.utility.ApiErrorResponseWriter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +15,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -34,11 +38,17 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/api/auth/**").permitAll()
+                                "/api/auth/**",
+                                "api/users"
+                        ).permitAll()
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/categories/**").authenticated()
                         .requestMatchers("/api/transactions/**").authenticated()
                         .anyRequest().denyAll()
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(customAuthenticationEntryPoint())
+                        .accessDeniedHandler(customAccessDeniedHandler())
                 )
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -47,6 +57,26 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+    @Bean
+    public AuthenticationEntryPoint customAuthenticationEntryPoint() {
+        return (request, response, authException) -> {
+            ApiErrorResponseWriter.write(response,
+                    "Authentication required",
+                    HttpServletResponse.SC_UNAUTHORIZED);
+        };
+    }
+
+    @Bean
+    public AccessDeniedHandler customAccessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            ApiErrorResponseWriter.write(response,
+                    "Access denied",
+                    HttpServletResponse.SC_FORBIDDEN);
+        };
+    }
+
+
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {

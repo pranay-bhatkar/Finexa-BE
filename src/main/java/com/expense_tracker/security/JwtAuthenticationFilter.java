@@ -4,6 +4,7 @@ import com.expense_tracker.model.RefreshToken;
 import com.expense_tracker.model.User;
 import com.expense_tracker.repository.RefreshTokenRepository;
 import com.expense_tracker.repository.UserRepository;
+import com.expense_tracker.utility.ApiErrorResponseWriter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,9 +54,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // 1️⃣ Validate access token
             if (!jwtService.isTokenValid(jwt, userDetails.getUsername())) {
-                filterChain.doFilter(request, response);
+                ApiErrorResponseWriter.write(
+                        response,
+                        "Invalid or expired token. Please login again.",
+                        HttpServletResponse.SC_UNAUTHORIZED
+                );
                 return;
             }
+
 
             // 2️⃣ Load User entity (important!)
             User userEntity = userRepository.findByEmail(username).orElse(null);
@@ -66,8 +72,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 // 3️⃣ If refresh token REVOKED → logout should block all future requests
                 if (refreshToken.isPresent() && refreshToken.get().isRevoked()) {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    response.getWriter().write("Token revoked. Please login again.");
+                    ApiErrorResponseWriter.write(response,
+                            "Token revoked. Please login again.",
+                            HttpServletResponse.SC_UNAUTHORIZED);
                     return;
                 }
             }
