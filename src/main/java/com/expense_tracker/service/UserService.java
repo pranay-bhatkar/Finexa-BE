@@ -1,5 +1,6 @@
 package com.expense_tracker.service;
 
+import com.expense_tracker.exception.AccessDeniedException;
 import com.expense_tracker.exception.UserAlreadyExistException;
 import com.expense_tracker.exception.UserNotFoundException;
 import com.expense_tracker.model.Role;
@@ -7,6 +8,8 @@ import com.expense_tracker.model.User;
 import com.expense_tracker.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,7 +76,7 @@ public class UserService {
 
     public User deleteUser(Long id) {
         User user = userRepository.findById(id)
-                        .orElseThrow(() -> new UserNotFoundException("User not found with : " + id));
+                .orElseThrow(() -> new UserNotFoundException("User not found with : " + id));
 
         userRepository.deleteById(id);
 
@@ -156,6 +159,19 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         return user.getId();
+    }
+
+    public User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("User is not authenticated");
+        }
+
+        String email = authentication.getName(); // extract from jwt / or from login auth
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found with email : " + email));
     }
 
 

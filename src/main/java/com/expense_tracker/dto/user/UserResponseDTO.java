@@ -1,4 +1,4 @@
-package com.expense_tracker.dto;
+package com.expense_tracker.dto.user;
 
 import com.expense_tracker.model.Role;
 

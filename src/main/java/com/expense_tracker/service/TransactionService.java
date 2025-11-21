@@ -4,6 +4,7 @@ import com.expense_tracker.exception.ResourceNotFoundException;
 import com.expense_tracker.model.Category;
 import com.expense_tracker.model.Transaction;
 import com.expense_tracker.model.TransactionType;
+import com.expense_tracker.model.User;
 import com.expense_tracker.repository.CategoryRepository;
 import com.expense_tracker.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,15 +26,25 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
+    private final UserService userService;
+    private final BudgetService budgetService;
 
     public Transaction addTransaction(Transaction transaction, Long userId) {
         Category category = categoryRepository.findById(
                         transaction.getCategory().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        transaction.setUserId(userId);
+        User user = userService.getUserById(userId);
+
+        transaction.setUser(user);
         transaction.setCategory(category);
-        return transactionRepository.save(transaction);
+
+        Transaction saved = transactionRepository.save(transaction);
+
+        // 🚀 Update budget after creating transaction
+        budgetService.updateSpentForBudget(saved);
+
+        return saved;
     }
 
     // full update
@@ -55,6 +66,14 @@ public class TransactionService {
 
         Transaction existing = transactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+
+        // Store snapshot to recalc old budget
+        Transaction oldSnapshot = new Transaction();
+        oldSnapshot.setUser(existing.getUser());
+        oldSnapshot.setDate(existing.getDate());
+        oldSnapshot.setCategory(existing.getCategory());
+        oldSnapshot.setAmount(existing.getAmount());
+        oldSnapshot.setType(existing.getType());
 
         // Only update non-null fields
         if (incoming.getType() != null)
@@ -84,7 +103,13 @@ public class TransactionService {
         // archived
         existing.setArchived(incoming.isArchived());
 
-        return transactionRepository.save(existing);
+        Transaction saved = transactionRepository.save(existing);
+
+        // 🚀 Update budgets (old and new)
+        budgetService.updateSpentForBudget(oldSnapshot);
+        budgetService.updateSpentForBudget(saved);
+
+        return saved;
     }
 
 
@@ -94,23 +119,38 @@ public class TransactionService {
 
         t.setArchived(true);
         transactionRepository.save(t);
+
+        // 🚀 Recalculate budgets after deletion
+        budgetService.updateSpentForBudget(t);
     }
 
+    public void restore(Long id) {
+        Transaction t = transactionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found"));
+
+        t.setArchived(false);
+        transactionRepository.save(t);
+
+        // 🚀 Recalculate budgets after restore
+        budgetService.updateSpentForBudget(t);
+    }
 
     public Page<Transaction> getAll(Long userId, int page, int size) {
-        return transactionRepository.findByUserIdAndArchivedFalse(userId, PageRequest.of(page, size));
+        return transactionRepository.findByUser_IdAndArchivedFalse(userId, PageRequest.of(page, size));
     }
 
     public Page<Transaction> filterByType(Long userId, TransactionType type, int page, int size) {
-        return transactionRepository.findByUserIdAndTypeAndArchivedFalse(userId, type, PageRequest.of(page, size));
+        return transactionRepository.findByUser_IdAndTypeAndArchivedFalse(userId, type, PageRequest.of(page, size));
     }
 
     public Page<Transaction> filterByCategory(Long userId, Long categoryId, int page, int size) {
-        return transactionRepository.findByUserIdAndCategoryIdAndArchivedFalse(userId, categoryId, PageRequest.of(page, size));
+        return transactionRepository.findByUser_IdAndCategory_IdAndArchivedFalse(userId, categoryId,
+                PageRequest.of(page, size));
     }
 
     public Page<Transaction> filterByDateRange(Long userId, LocalDate start, LocalDate end, int page, int size) {
-        return transactionRepository.findByUserIdAndDateBetweenAndArchivedFalse(userId, start, end, PageRequest.of(page, size));
+        return transactionRepository.findByUser_IdAndDateBetweenAndArchivedFalse(userId, start, end,
+                PageRequest.of(page, size));
     }
 
     public Transaction attachReceipt(MultipartFile file, Long transactionId, Long userId) throws IOException {
@@ -120,7 +160,7 @@ public class TransactionService {
                 .orElseThrow(() -> new RuntimeException("Transaction not found"));
 
         // 2. Security check — prevent updating other users' transactions
-        if (!tx.getUserId().equals(userId)) {
+        if (!tx.getUser().getId().equals(userId)) {
             throw new AccessDeniedException("Unauthorized – cannot modify this transaction");
         }
 

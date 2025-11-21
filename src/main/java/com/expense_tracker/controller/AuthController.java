@@ -1,6 +1,8 @@
 package com.expense_tracker.controller;
 
 import com.expense_tracker.dto.*;
+import com.expense_tracker.dto.user.UserRequestDTO;
+import com.expense_tracker.dto.user.UserResponseDTO;
 import com.expense_tracker.exception.UserNotFoundException;
 import com.expense_tracker.model.Role;
 import com.expense_tracker.model.User;
@@ -156,7 +158,7 @@ public class AuthController {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-       passwordResetService.verifyOtp(user, request.getOtp());
+        passwordResetService.verifyOtp(user, request.getOtp());
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);

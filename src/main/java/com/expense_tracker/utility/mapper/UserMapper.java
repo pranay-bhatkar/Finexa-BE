@@ -1,7 +1,7 @@
-package com.expense_tracker.utility;
+package com.expense_tracker.utility.mapper;
 
-import com.expense_tracker.dto.UserRequestDTO;
-import com.expense_tracker.dto.UserResponseDTO;
+import com.expense_tracker.dto.user.UserRequestDTO;
+import com.expense_tracker.dto.user.UserResponseDTO;
 import com.expense_tracker.model.User;
 
 public class UserMapper {

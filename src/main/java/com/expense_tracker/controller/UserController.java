@@ -1,12 +1,12 @@
 package com.expense_tracker.controller;
 
-import com.expense_tracker.dto.UserRequestDTO;
-import com.expense_tracker.dto.UserResponseDTO;
+import com.expense_tracker.dto.user.UserRequestDTO;
+import com.expense_tracker.dto.user.UserResponseDTO;
 import com.expense_tracker.model.Role;
 import com.expense_tracker.model.User;
 import com.expense_tracker.response.ApiResponse;
 import com.expense_tracker.service.UserService;
-import com.expense_tracker.utility.UserMapper;
+import com.expense_tracker.utility.mapper.UserMapper;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

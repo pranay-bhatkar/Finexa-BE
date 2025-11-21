@@ -22,7 +22,9 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId; // link to user
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user; // link to user
 
     @Enumerated(EnumType.STRING)
     private TransactionType type;
