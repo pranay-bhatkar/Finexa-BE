@@ -7,6 +7,7 @@ import com.expense_tracker.model.TransactionType;
 import com.expense_tracker.model.User;
 import com.expense_tracker.repository.CategoryRepository;
 import com.expense_tracker.repository.TransactionRepository;
+import com.expense_tracker.service.budget.BudgetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
