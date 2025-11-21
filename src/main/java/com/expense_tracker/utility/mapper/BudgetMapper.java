@@ -2,7 +2,7 @@ package com.expense_tracker.utility.mapper;
 
 import com.expense_tracker.dto.budget.BudgetRequestDTO;
 import com.expense_tracker.dto.budget.BudgetResponseDTO;
-import com.expense_tracker.model.Budget;
+import com.expense_tracker.model.budget.Budget;
 import com.expense_tracker.model.Category;
 import com.expense_tracker.model.User;
 

@@ -1,5 +1,7 @@
-package com.expense_tracker.model;
+package com.expense_tracker.model.budget;
 
+import com.expense_tracker.model.Category;
+import com.expense_tracker.model.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

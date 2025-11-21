@@ -3,7 +3,7 @@ package com.expense_tracker.controller;
 import com.expense_tracker.dto.budget.BudgetRequestDTO;
 import com.expense_tracker.dto.budget.BudgetResponseDTO;
 import com.expense_tracker.response.ApiResponse;
-import com.expense_tracker.service.BudgetService;
+import com.expense_tracker.service.budget.BudgetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
