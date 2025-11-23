@@ -47,6 +47,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/budgets/**").authenticated()
                         .requestMatchers("/api/notifications/**").authenticated()
                         .requestMatchers("/api/analytics/**").authenticated()
+                        .requestMatchers("/api/recurring").authenticated()
+                        .requestMatchers("/api/recurring/**").authenticated()
                         .anyRequest().denyAll()
                 )
                 .exceptionHandling(ex -> ex
