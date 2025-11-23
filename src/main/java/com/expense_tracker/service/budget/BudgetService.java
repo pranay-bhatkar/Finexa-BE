@@ -10,6 +10,7 @@ import com.expense_tracker.model.User;
 import com.expense_tracker.model.budget.Budget;
 import com.expense_tracker.repository.CategoryRepository;
 import com.expense_tracker.repository.TransactionRepository;
+import com.expense_tracker.repository.UserRepository;
 import com.expense_tracker.repository.budget.BudgetRepository;
 import com.expense_tracker.service.UserService;
 import com.expense_tracker.service.notification.NotificationService;
@@ -28,6 +29,7 @@ public class BudgetService {
     private final UserService userService; // to get logged-in user
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     public BudgetResponseDTO createBudget(BudgetRequestDTO dto) {
         User user = userService.getCurrentUser();
@@ -108,6 +110,7 @@ public class BudgetService {
 
     // Update Spent After Transaction
     public void updateSpentForBudget(Transaction transaction) {
+
         User user = transaction.getUser();
         int month = transaction.getDate().getMonthValue();
         int year = transaction.getDate().getYear();
@@ -125,13 +128,15 @@ public class BudgetService {
                     budget.setSpent(spent);
                     budgetRepository.save(budget);
 
+                    // Inside updateSpentForBudget() after calculating spent
                     if (spent > budget.getAmount()) {
-                        notificationService.sendNotification(
-                                user,
-                                "Budget exceeded for " + (budget.getCategory() != null ?
-                                        budget.getCategory().getName() : "Overall") + " in " + month + " / " + year
-                        );
+                        String message = "Budget exceeded for " +
+                                (budget.getCategory() != null ? budget.getCategory().getName() : "Overall") +
+                                " in " + month + "/" + year;
+
+                        notificationService.sendNotification(user, message);
                     }
+
                 });
 
         // update overall budget
@@ -146,12 +151,15 @@ public class BudgetService {
                     budget.setSpent(spent);
                     budgetRepository.save(budget);
 
+                    // Inside updateSpentForBudget() after calculating spent
                     if (spent > budget.getAmount()) {
-                        notificationService.sendNotification(
-                                user,
-                                "Overall monthly budget exceeded in " + month + "/" + year
-                        );
+                        String message = "Budget exceeded for " +
+                                (budget.getCategory() != null ? budget.getCategory().getName() : "Overall") +
+                                " in " + month + "/" + year;
+
+                        notificationService.sendNotification(user, message);
                     }
+
                 });
 
 
@@ -161,6 +169,19 @@ public class BudgetService {
     private double calculateSpent(Long categoryId, Long userId, int month, int year) {
         return transactionRepository.sumSpent(userId, month, year, categoryId);
 
+    }
+
+
+    public void resetBudgetsForUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        List<Budget> budgets = budgetRepository.findByUserId(user.getId());
+
+        for (Budget budget : budgets) {
+            budget.setSpent(0.0); // reset spent
+            budgetRepository.save(budget);
+        }
     }
 
 

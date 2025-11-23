@@ -43,6 +43,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/**").authenticated()
                         .requestMatchers("/api/categories/**").authenticated()
                         .requestMatchers("/api/transactions/**").authenticated()
+                        .requestMatchers("/api/budgets").authenticated()
+                        .requestMatchers("/api/budgets/**").authenticated()
+                        .requestMatchers("/api/notifications/**").authenticated()
+                        .requestMatchers("/api/analytics/**").authenticated()
                         .anyRequest().denyAll()
                 )
                 .exceptionHandling(ex -> ex
@@ -74,7 +78,6 @@ public class SecurityConfig {
                     HttpServletResponse.SC_FORBIDDEN);
         };
     }
-
 
 
     @Bean

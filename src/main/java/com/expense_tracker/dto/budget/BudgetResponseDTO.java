@@ -10,11 +10,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BudgetResponseDTO {
-    private long id;
+    private Long id;
     private Double amount;
     private Integer month;
     private Integer year;
     private Long categoryId;
     private Double spent;
+    private Double remaining;
     private Long userId;
 }

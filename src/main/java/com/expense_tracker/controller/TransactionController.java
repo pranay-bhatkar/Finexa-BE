@@ -1,5 +1,7 @@
 package com.expense_tracker.controller;
 
+import com.expense_tracker.dto.transaction.TransactionRequestDTO;
+import com.expense_tracker.dto.transaction.TransactionResponseDTO;
 import com.expense_tracker.exception.UserNotFoundException;
 import com.expense_tracker.model.Transaction;
 import com.expense_tracker.model.TransactionType;
@@ -7,6 +9,7 @@ import com.expense_tracker.repository.UserRepository;
 import com.expense_tracker.response.ApiResponse;
 import com.expense_tracker.service.TransactionService;
 import com.expense_tracker.service.UserService;
+import com.expense_tracker.utility.mapper.TransactionMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -28,23 +31,28 @@ public class TransactionController {
     private final UserRepository userRepository;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Transaction>> addTransaction(
-            @RequestBody Transaction transaction,
+    public ResponseEntity<ApiResponse<TransactionResponseDTO>> addTransaction(
+            @RequestBody TransactionRequestDTO dto,
             @AuthenticationPrincipal UserDetails userDetails) {
 
-//        throws error ->   "data": "For input string: \"test@1.com\"",
-//        Long userId = Long.valueOf(userDetails.getUsername());
-
-        Long userId = null;
-        if (userDetails != null) {
-            userId = userRepository.findByEmail(userDetails.getUsername())
-                    .orElseThrow(() -> new UserNotFoundException("User not found"))
-                    .getId();
+        if (userDetails == null) {
+            throw new RuntimeException("Unauthorized");
         }
 
-        Transaction saved = transactionService.addTransaction(transaction, userId);
+        Long userId = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new UserNotFoundException("User not found"))
+                .getId();
 
-        return ResponseEntity.ok(new ApiResponse<>("success", "Transaction added", saved, 200));
+        Transaction savedTransaction = transactionService.addTransaction(dto, userId);
+
+        TransactionResponseDTO responseDTO = TransactionMapper.toDTO(savedTransaction);
+
+        return ResponseEntity.ok(new ApiResponse<>(
+                "success",
+                "Transaction added successfully",
+                responseDTO,
+                200
+        ));
     }
 
     @PutMapping("/{id}")

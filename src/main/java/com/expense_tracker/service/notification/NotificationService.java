@@ -1,9 +1,15 @@
 package com.expense_tracker.service.notification;
 
+import com.expense_tracker.dto.notification.NotificationResponseDTO;
+import com.expense_tracker.exception.ResourceNotFoundException;
 import com.expense_tracker.model.User;
 import com.expense_tracker.model.notification.Notification;
 import com.expense_tracker.repository.notification.NotificationsRepository;
+import com.expense_tracker.utility.mapper.NotificationMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,26 +19,43 @@ import java.util.List;
 public class NotificationService {
 
     private final NotificationsRepository notificationsRepository;
+    private final JavaMailSender mailSender;
 
+    // In-app + email notification
+    @Async
     public void sendNotification(User user, String message) {
+        // save in-app notification
         Notification notification = Notification.builder()
                 .user(user)
                 .message(message)
                 .read(false)
                 .build();
         notificationsRepository.save(notification);
+
+        // send email notifications
+        if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+            SimpleMailMessage mailMessage = new SimpleMailMessage();
+            mailMessage.setTo(user.getEmail());
+            mailMessage.setSubject("Expense Tracker Notification");
+            mailMessage.setText(message);
+            mailSender.send(mailMessage);
+        }
     }
 
-    public List<Notification> getUnreadNotifications(User user) {
-        return notificationsRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(user.getId());
+    public List<NotificationResponseDTO> getUnreadNotifications(User user) {
+        return notificationsRepository.
+                findByUserIdAndReadFalseOrderByCreatedAtDesc(user.getId())
+                .stream()
+                .map(NotificationMapper::toDTO)
+                .toList();
     }
 
     public void markAsRead(Long notificationId) {
-        notificationsRepository.findById(notificationId).ifPresent(
-                n -> {
-                    n.setRead(true);
-                    notificationsRepository.save(n);
-                }
-        );
+        Notification notification = notificationsRepository.findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Notification with id " + notificationId + " not found"
+                ));
+
+
     }
 }

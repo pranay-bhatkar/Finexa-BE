@@ -1,5 +1,6 @@
 package com.expense_tracker.service;
 
+import com.expense_tracker.dto.transaction.TransactionRequestDTO;
 import com.expense_tracker.exception.ResourceNotFoundException;
 import com.expense_tracker.model.Category;
 import com.expense_tracker.model.Transaction;
@@ -30,15 +31,22 @@ public class TransactionService {
     private final UserService userService;
     private final BudgetService budgetService;
 
-    public Transaction addTransaction(Transaction transaction, Long userId) {
-        Category category = categoryRepository.findById(
-                        transaction.getCategory().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
-
+    public Transaction addTransaction(TransactionRequestDTO dto, Long userId) {
         User user = userService.getUserById(userId);
 
-        transaction.setUser(user);
-        transaction.setCategory(category);
+        Category category = categoryRepository.findById(
+                        dto.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+
+        Transaction transaction = Transaction.builder()
+                .amount(dto.getAmount())
+                .type(TransactionType.valueOf(dto.getType()))
+                .notes(dto.getNotes())
+                .recurring(dto.getRecurring() != null && dto.getRecurring()) // FIX HERE
+                .date(dto.getDate())
+                .user(user)
+                .category(category)
+                .build();
 
         Transaction saved = transactionRepository.save(transaction);
 

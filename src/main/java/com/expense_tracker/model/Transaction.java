@@ -1,10 +1,7 @@
 package com.expense_tracker.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,6 +13,7 @@ import java.time.LocalDate;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Transaction {
 
     @Id
@@ -51,4 +49,11 @@ public class Transaction {
     @UpdateTimestamp
     private LocalDate updateAt;
 
+
+    @PrePersist
+    public void onCreate() {
+        if (this.date == null) {
+            this.date = LocalDate.now();
+        }
+    }
 }

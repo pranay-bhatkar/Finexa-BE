@@ -6,8 +6,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
@@ -33,13 +35,56 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             SELECT COALESCE(SUM(t.amount), 0)
             FROM Transaction t
             WHERE t.user.id = :userId
-              AND MONTH(t.date) = :month
-              AND YEAR(t.date) = :year
+               AND FUNCTION('MONTH', t.date) = :month
+               AND FUNCTION('YEAR', t.date) = :year
               AND t.archived = false
               AND t.type = 'EXPENSE'
               AND (:categoryId IS NULL OR t.category.id = :categoryId)
             """)
     double sumSpent(Long userId, Integer month, Integer year, Long categoryId);
+
+
+    @Query("SELECT t.category.name, COALESCE(SUM(t.amount), 0) " +
+            "FROM Transaction t " +
+            "WHERE t.user.id = :userId " +
+            "AND FUNCTION('MONTH', t.date) = :month " +
+            "AND FUNCTION('YEAR', t.date) = :year " +
+            "GROUP BY t.category.name")
+    List<Object[]> getCategoryWiseSpending(@Param("userId") Long userId,
+                                           @Param("month") int month,
+                                           @Param("year") int year);
+
+
+    // Monthly trend for last N months
+    // TransactionRepository.java
+    @Query(value = """
+            SELECT YEAR(t.date) AS yr,
+                   MONTH(t.date) AS mn,
+                   SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE 0 END) AS income,
+                   SUM(CASE WHEN t.type = 'EXPENSE' THEN t.amount ELSE 0 END) AS expense
+            FROM transactions t
+            WHERE t.user_id = :userId
+              AND t.date >= :startDate
+              AND t.archived = false
+            GROUP BY YEAR(t.date), MONTH(t.date)
+            ORDER BY YEAR(t.date), MONTH(t.date)
+            """, nativeQuery = true)
+    List<Object[]> getMonthlyTrendsNative(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDate startDate
+    );
+
+
+    @Query("SELECT COALESCE(SUM(t.amount), 0) " +
+            "FROM Transaction t " +
+            "WHERE t.user.id = :userId " +
+            "AND FUNCTION('MONTH', t.date) = :month " +
+            "AND FUNCTION('YEAR', t.date) = :year " +
+            "AND t.type = :type")
+    Double sumByUserAndMonthAndType(@Param("userId") Long userId,
+                                    @Param("month") int month,
+                                    @Param("year") int year,
+                                    @Param("type") TransactionType type);
 
 
 }

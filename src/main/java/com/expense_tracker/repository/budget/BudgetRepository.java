@@ -32,4 +32,5 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
             """)
     List<Budget> findByMonthAndYear(int month, int year);
 
+
 }

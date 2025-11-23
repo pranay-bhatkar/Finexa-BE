@@ -1,10 +1,12 @@
 package com.expense_tracker.controller.notification;
 
+import com.expense_tracker.dto.notification.NotificationResponseDTO;
 import com.expense_tracker.model.User;
 import com.expense_tracker.model.notification.Notification;
 import com.expense_tracker.response.ApiResponse;
 import com.expense_tracker.service.UserService;
 import com.expense_tracker.service.notification.NotificationService;
+import com.expense_tracker.utility.mapper.NotificationMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,19 +24,21 @@ public class NotificationController {
 
 
     @GetMapping("/unread")
-    public ResponseEntity<ApiResponse<List<Notification>>> getUnreadNotifications() {
+    public ResponseEntity<ApiResponse<List<NotificationResponseDTO>>> getUnreadNotifications() {
         User user = userService.getCurrentUser();
 
-        List<Notification> notifications = notificationService.getUnreadNotifications(user);
+        List<NotificationResponseDTO> dtoList = notificationService.getUnreadNotifications(user);
 
-        ApiResponse<List<Notification>> response = new ApiResponse<>(
+        ApiResponse<List<NotificationResponseDTO>> response = new ApiResponse<>(
                 "success",
-                "successfully get the notifications",
-                notifications,
-                HttpStatus.CREATED.value()
+                "Successfully retrieved notifications",
+                dtoList,
+                HttpStatus.OK.value()
         );
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
+        return ResponseEntity.ok(response);
     }
+
 
     @PostMapping("/read/{id}")
     public ResponseEntity<ApiResponse<Void>> markAsRead(@PathVariable Long id) {

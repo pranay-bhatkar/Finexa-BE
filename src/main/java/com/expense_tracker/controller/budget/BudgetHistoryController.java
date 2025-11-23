@@ -3,6 +3,7 @@ package com.expense_tracker.controller.budget;
 import com.expense_tracker.model.budget.BudgetHistory;
 import com.expense_tracker.repository.budget.BudgetHistoryRepository;
 import com.expense_tracker.response.ApiResponse;
+import com.expense_tracker.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,15 +14,17 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/budgets/history")
+@RequestMapping("/api/budgets/history")
 @RequiredArgsConstructor
 public class BudgetHistoryController {
 
     private final BudgetHistoryRepository historyRepository;
+    private final UserService userService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<BudgetHistory>>> getUserHistory() {
-        Long userId = 1L; // fetch from logged-in user
+//        Long userId = 1L; // fetch from logged-in user
+        Long userId = userService.getCurrentUser().getId();
         List<BudgetHistory> history = historyRepository.findByUserIdOrderByYearDescMonthDesc(userId);
 
         ApiResponse<List<BudgetHistory>> response = new ApiResponse<>(
