@@ -8,18 +8,24 @@ import com.expense_tracker.model.Category;
 import com.expense_tracker.model.Transaction;
 import com.expense_tracker.model.User;
 import com.expense_tracker.model.budget.Budget;
+import com.expense_tracker.model.budget.BudgetHistory;
+import com.expense_tracker.model.budget.BudgetHistoryType;
 import com.expense_tracker.repository.CategoryRepository;
 import com.expense_tracker.repository.TransactionRepository;
 import com.expense_tracker.repository.UserRepository;
+import com.expense_tracker.repository.budget.BudgetHistoryRepository;
 import com.expense_tracker.repository.budget.BudgetRepository;
 import com.expense_tracker.service.UserService;
 import com.expense_tracker.service.notification.NotificationService;
 import com.expense_tracker.utility.mapper.BudgetMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BudgetService {
@@ -30,18 +36,35 @@ public class BudgetService {
     private final TransactionRepository transactionRepository;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+    private final BudgetHistoryRepository budgetHistoryRepository;
+
 
     public BudgetResponseDTO createBudget(BudgetRequestDTO dto) {
+        log.info("Enter in the createBudget service");
         User user = userService.getCurrentUser();
 
         Long categoryId = dto.getCategoryId() == null ? null : dto.getCategoryId();
+
+        String categoryName;
+        if (dto.getCategoryId() != null) {
+            categoryName = categoryRepository.findById(dto.getCategoryId())
+                    .map(Category::getName)
+                    .orElse("Unknown Category");
+        } else {
+            categoryName = "General";
+        }
+
         budgetRepository.findByUserIdAndMonthAndYearAndCategoryId(
                 user.getId(),
                 dto.getMonth(),
                 dto.getYear(),
                 categoryId
         ).ifPresent(b -> {
-            throw new RuntimeException("Budget already exists for this month/year/category");
+            throw new ResourceNotFoundException("Budget already exists for this : " + categoryName + ", " + "Month : " +
+                    dto.getMonth() + ", " +
+                    "Year : " +
+                    dto.getYear()
+            );
         });
 
         Category category = null;
@@ -60,8 +83,9 @@ public class BudgetService {
                 .build();
 
         budgetRepository.save(budget);
-
+        saveHistory(budget, BudgetHistoryType.CREATED);
         return BudgetMapper.toDTO(budget);
+
     }
 
     public BudgetResponseDTO updateBudget(Long id, BudgetRequestDTO dto) {
@@ -77,6 +101,7 @@ public class BudgetService {
         budget.setAmount(dto.getAmount());
         budgetRepository.save(budget);
 
+        saveHistory(budget, BudgetHistoryType.UPDATED);
         return BudgetMapper.toDTO(budget);
     }
 
@@ -89,6 +114,7 @@ public class BudgetService {
         } else {
             budgets = budgetRepository.findByUserId(user.getId());
         }
+
 
         return budgets.stream()
                 .map(BudgetMapper::toDTO)
@@ -105,6 +131,7 @@ public class BudgetService {
             throw new RuntimeException("Unauthorized");
         }
 
+        saveHistory(budget, BudgetHistoryType.DELETED);
         budgetRepository.delete(budget);
     }
 
@@ -171,7 +198,7 @@ public class BudgetService {
 
     }
 
-
+    // reset the budget
     public void resetBudgetsForUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -181,8 +208,39 @@ public class BudgetService {
         for (Budget budget : budgets) {
             budget.setSpent(0.0); // reset spent
             budgetRepository.save(budget);
+
+            saveHistory(budget, BudgetHistoryType.RESET);
         }
     }
 
+
+    // helper methods
+    private void saveHistory(Budget budget, BudgetHistoryType action) {
+
+        BudgetHistory history = BudgetHistory.builder()
+                .originalBudgetId(budget.getId())
+                .amount(budget.getAmount())
+                .spent(budget.getSpent())
+                .month(budget.getMonth())
+                .year(budget.getYear())
+                .category(budget.getCategory())
+                .user(budget.getUser())
+                .type(action)
+                .archivedAt(LocalDateTime.now()) // snapshot time
+                .build();
+
+        budgetHistoryRepository.save(history);
+    }
+
+
+    // -----------------------------------------------
+    // HELPER FOR CHANGE TYPE
+    // -----------------------------------------------
+//    private String getChangeType(Double oldAmount, Double newAmount) {
+//        if (oldAmount == null) return "CREATED";
+//        if (newAmount > oldAmount) return "INCREASE";
+//        if (newAmount < oldAmount) return "DECREASE";
+//        return "NO CHANGE";
+//    }
 
 }

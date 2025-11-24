@@ -40,6 +40,10 @@ public class BudgetHistory {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Enumerated(EnumType.STRING)
+    private BudgetHistoryType type;
+
+
     private LocalDateTime archivedAt = LocalDateTime.now();
 
 }

@@ -49,6 +49,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/analytics/**").authenticated()
                         .requestMatchers("/api/recurring").authenticated()
                         .requestMatchers("/api/recurring/**").authenticated()
+                        .requestMatchers("/api/reports/**").authenticated()
                         .anyRequest().denyAll()
                 )
                 .exceptionHandling(ex -> ex
