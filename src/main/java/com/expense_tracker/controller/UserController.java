@@ -6,6 +6,7 @@ import com.expense_tracker.model.Role;
 import com.expense_tracker.model.User;
 import com.expense_tracker.response.ApiResponse;
 import com.expense_tracker.service.UserService;
+import com.expense_tracker.service.notification.NotificationService;
 import com.expense_tracker.utility.mapper.UserMapper;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -27,6 +26,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private NotificationService notificationService;
 
     // create user ->  admin or self-registration of new users
     @PostMapping
@@ -55,14 +57,14 @@ public class UserController {
             @RequestParam(defaultValue = "false") boolean all
 
     ) {
-        Page<User> userPage = userService.getAllUsers(page, size, sortBy, sortDir, all);
+        Page<UserResponseDTO> userPage = userService.getAllUsers(page, size, sortBy, sortDir, all);
 
         Map<String, Object> responseData = new HashMap<>();
-        List<UserResponseDTO> usersDto = userPage.getContent().stream()
-                .map(UserMapper::toDTO)
-                .collect(Collectors.toList());
+//        List<UserResponseDTO> usersDto = userPage.getContent().stream()
+//                .map(UserMapper::toDTO)
+//                .collect(Collectors.toList());
 
-        responseData.put("users", usersDto);
+        responseData.put("users", userPage.getContent());
         responseData.put("currentPage", userPage.getNumber());
         responseData.put("totalItems", userPage.getTotalElements());
         responseData.put("totalPages", userPage.getTotalPages());
@@ -117,7 +119,7 @@ public class UserController {
     // Admin removes a user.
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
-        User deletedUser =  userService.deleteUser(id);
+        User deletedUser = userService.deleteUser(id);
 
         String message = deletedUser.getName() + "user deleted successfully";
 
@@ -187,6 +189,13 @@ public class UserController {
 
         // map to dto
         UserResponseDTO dto = UserMapper.toDTO(updateUser);
+
+        notificationService.sendNotification(
+                currentUser,
+                "👤 Profile Updated",
+                "Your profile information was updated successfully."
+        );
+
 
         ApiResponse<UserResponseDTO> response = new ApiResponse<>(
                 "success",

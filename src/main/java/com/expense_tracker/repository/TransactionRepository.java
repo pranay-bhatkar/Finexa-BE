@@ -88,7 +88,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                     @Param("type") TransactionType type);
 
 
-
     @Query("SELECT t FROM Transaction t " +
             "WHERE t.user.id = :userId " +
             "AND FUNCTION('MONTH', t.date) = :month " +
@@ -100,11 +99,39 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     );
 
 
-    List<Transaction> findByRecurringDate(LocalDate tomorrow);
+    @Query("SELECT t FROM Transaction t WHERE t.recurring = true AND t.date = :date")
+    List<Transaction> findByRecurringDate(@Param("date") LocalDate date);
 
+    @Query("SELECT DISTINCT t.user FROM Transaction t")
     List<User> findDistinctUsers();
 
-    double sumIncome(Long id, LocalDate start, LocalDate end);
 
-    double sumExpense(Long id, LocalDate start, LocalDate end);
+    // Sum of income for a user in a date range
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+            "WHERE t.user.id = :userId AND t.type = 'INCOME' " +
+            "AND t.date BETWEEN :start AND :end")
+    double sumIncome(@Param("userId") Long userId,
+                     @Param("start") LocalDate start,
+                     @Param("end") LocalDate end);
+
+
+    // Sum of expense for a user in a date range
+    @Query("SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t " +
+            "WHERE t.user.id = :userId AND t.type = 'EXPENSE' " +
+            "AND t.date BETWEEN :start AND :end")
+    double sumExpense(@Param("userId") Long userId,
+                      @Param("start") LocalDate start,
+                      @Param("end") LocalDate end);
+
+
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.type='INCOME'")
+    double sumAllIncome();
+
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.type='EXPENSE'")
+    double sumAllExpenses();
+
+    @Query("SELECT COUNT(r) FROM RecurringTransaction r")
+    long countRecurringTransactions();
+
+
 }

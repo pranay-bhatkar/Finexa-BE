@@ -1,5 +1,6 @@
 package com.expense_tracker.service;
 
+import com.expense_tracker.dto.user.UserResponseDTO;
 import com.expense_tracker.exception.AccessDeniedException;
 import com.expense_tracker.exception.UserAlreadyExistException;
 import com.expense_tracker.exception.UserNotFoundException;
@@ -49,24 +50,39 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public Page<User> getAllUsers(int page, int size, String sortBy, String sortDir, boolean all) {
+    public Page<UserResponseDTO> getAllUsers(int page, int size, String sortBy, String sortDir, boolean all) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+
+        List<User> usersList;
 
         if (all) {
             // Return all users as a single page
-            List<User> allUsers = userRepository.findAll(sort);
-            return new PageImpl<>(allUsers); // wrap list in a Page
+            usersList = userRepository.findAll(sort);
+        } else {
+            Pageable pageable = PageRequest.of(page, size, sort);
+            Page<User> usersPage = userRepository.findAll(pageable);
+
+            if (usersPage.isEmpty()) {
+                throw new UserNotFoundException("No users found for page: " + page);
+            }
+
+            usersList = usersPage.getContent();
         }
 
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<User> usersPage = userRepository.findAll(pageable);
+        // Map entities -> DTOs
+        List<UserResponseDTO> dtoList = usersList.stream()
+                .map(user -> new UserResponseDTO(
+                        user.getId(),
+                        user.getName(),
+                        user.getEmail(),
+                        user.getRole(),
+                        user.getCreatedAt()
+                ))
+                .toList();
 
-        if (usersPage.isEmpty()) {
-            throw new UserNotFoundException("No users found for page: " + page);
-        }
-
-        return usersPage;
+        return new PageImpl<>(dtoList);
     }
+
 
     public User getUserById(Long id) {
         return userRepository.findById(id).orElseThrow(()
@@ -213,4 +229,15 @@ public class UserService {
     }
 
 
+    // Total number of users
+    public long countAllUsers() {
+        return userRepository.count();
+    }
+
+    // Active users (example: users with at least one transaction, or based on your active logic)
+    public long countActiveUsers() {
+        return userRepository.findAll().stream()
+                .filter(user -> user.isAccountLocked()) // assuming you have 'active' flag, otherwise define your criteria
+                .count();
+    }
 }
